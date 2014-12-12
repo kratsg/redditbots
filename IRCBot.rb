@@ -30,14 +30,19 @@ $bot = Cinch::Bot.new do
     startSnooping
   end
 
-  on :message, /^!(phrase|image) ([a-zA-Z_]+\S)$/ do |m, router, phrase|
+  on :message, /^!image ([0-9]{1,3})$/ do |m, imageID|
+    m.reply("%s: http://holidaybullshit2014.herokuapp.com/image/%s" % [m.user.nick, imageID])
+  end
+
+  on :message, /^!phrase ([a-zA-Z_0-9]+\S)$/ do |m, phrase|
     phrase = URI.escape(phrase)
-    imageID, counts = get_id_from_phrase phrase
     imageStr = ""
+
+    imageID, counts = get_id_from_phrase phrase
     if not imageID.nil? then
       imageStr = " | http://holidaybullshit2014.herokuapp.com/image/%d | requested %d times" % [imageID, counts]
     end
-    m.reply("%s: http://holidaybullshit2014.herokuapp.com/%s/%s%s" % [m.user.nick,router, phrase, imageStr])
+    m.reply("%s: http://holidaybullshit2014.herokuapp.com/phrase/%s%s" % [m.user.nick, phrase, imageStr])
   end
 
   on :message, /^!i love you$/ do |m|
