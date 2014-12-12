@@ -1,6 +1,8 @@
 require 'cinch'
 require 'cinch/plugins/identify'
 require 'redd'
+require 'uri'
+require 'httparty'
 
 $bot = Cinch::Bot.new do
   configure do |c|
@@ -18,16 +20,34 @@ $bot = Cinch::Bot.new do
   end
 
   helpers do
+    def get_id_from_phrase(phrase)
+      response = HTTParty.get('http://holidaybullshit2014.herokuapp.com/api/phrase/%s' % phrase)
+      return response['id'], response['requests']
+    end
   end
 
   on :connect do
     startSnooping
   end
-end
 
-#Thread.new do
-#  $bot.start
-#end
+  on :message, /^!(phrase|image) ([a-zA-Z_]+\S)$/ do |m, router, phrase|
+    phrase = URI.escape(phrase)
+    imageID, counts = get_id_from_phrase phrase
+    imageStr = ""
+    if not imageID.nil? then
+      imageStr = " | http://holidaybullshit2014.herokuapp.com/image/%d | requested %d times" % [imageID, counts]
+    end
+    m.reply("%s: http://holidaybullshit2014.herokuapp.com/%s/%s%s" % [m.user.nick,router, phrase, imageStr])
+  end
+
+  on :message, /^!i love you$/ do |m|
+    if m.user.nick == "kratsg" then
+      m.reply("I love you too kratsg.")
+    else
+      m.reply("I don't love you %s" % m.user.nick)
+    end
+  end
+end
 
 def say(msg)
   puts msg
@@ -35,7 +55,7 @@ def say(msg)
 end
 
 def say_submission(s)
-  say "A new submission! #{s.author} wrote \"#{s.title}\": \"#{s.selftext[0,50]}...\". Link: #{s.url}"
+  say "A new submission! \"#{s.title}\": #{s.url}"
 end
 
 def startSnooping
@@ -45,11 +65,12 @@ def startSnooping
   initial_submission = (subreddit.get_new :limit=>1).first
   latest_fullname = initial_submission.fullname
   
-  say_submission initial_submission
+  # say_submission initial_submission
   while true
     newest_submissions = subreddit.get_new :before=>latest_fullname
     newest_submissions.each do |submission|
       say_submission submission
+      latest_fullname = submission.fullname
     end
   end
 end
